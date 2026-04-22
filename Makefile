@@ -129,53 +129,29 @@ code/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/code.dir/build.make CMakeFiles/code.dir/build
 .PHONY : code/fast
 
-bptree.o: bptree.cpp.o
-.PHONY : bptree.o
+bptree_v2.o: bptree_v2.cpp.o
+.PHONY : bptree_v2.o
 
 # target to build an object file
-bptree.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/code.dir/build.make CMakeFiles/code.dir/bptree.cpp.o
-.PHONY : bptree.cpp.o
+bptree_v2.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/code.dir/build.make CMakeFiles/code.dir/bptree_v2.cpp.o
+.PHONY : bptree_v2.cpp.o
 
-bptree.i: bptree.cpp.i
-.PHONY : bptree.i
-
-# target to preprocess a source file
-bptree.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/code.dir/build.make CMakeFiles/code.dir/bptree.cpp.i
-.PHONY : bptree.cpp.i
-
-bptree.s: bptree.cpp.s
-.PHONY : bptree.s
-
-# target to generate assembly for a file
-bptree.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/code.dir/build.make CMakeFiles/code.dir/bptree.cpp.s
-.PHONY : bptree.cpp.s
-
-file_manager.o: file_manager.cpp.o
-.PHONY : file_manager.o
-
-# target to build an object file
-file_manager.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/code.dir/build.make CMakeFiles/code.dir/file_manager.cpp.o
-.PHONY : file_manager.cpp.o
-
-file_manager.i: file_manager.cpp.i
-.PHONY : file_manager.i
+bptree_v2.i: bptree_v2.cpp.i
+.PHONY : bptree_v2.i
 
 # target to preprocess a source file
-file_manager.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/code.dir/build.make CMakeFiles/code.dir/file_manager.cpp.i
-.PHONY : file_manager.cpp.i
+bptree_v2.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/code.dir/build.make CMakeFiles/code.dir/bptree_v2.cpp.i
+.PHONY : bptree_v2.cpp.i
 
-file_manager.s: file_manager.cpp.s
-.PHONY : file_manager.s
+bptree_v2.s: bptree_v2.cpp.s
+.PHONY : bptree_v2.s
 
 # target to generate assembly for a file
-file_manager.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/code.dir/build.make CMakeFiles/code.dir/file_manager.cpp.s
-.PHONY : file_manager.cpp.s
+bptree_v2.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/code.dir/build.make CMakeFiles/code.dir/bptree_v2.cpp.s
+.PHONY : bptree_v2.cpp.s
 
 main.o: main.cpp.o
 .PHONY : main.o
@@ -210,12 +186,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... code"
-	@echo "... bptree.o"
-	@echo "... bptree.i"
-	@echo "... bptree.s"
-	@echo "... file_manager.o"
-	@echo "... file_manager.i"
-	@echo "... file_manager.s"
+	@echo "... bptree_v2.o"
+	@echo "... bptree_v2.i"
+	@echo "... bptree_v2.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"

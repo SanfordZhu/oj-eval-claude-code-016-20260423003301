@@ -1,7 +1,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include "bptree.h"
+#include "bptree_v2.h"
 
 int main() {
     std::ios::sync_with_stdio(false);
@@ -11,7 +11,7 @@ int main() {
     std::remove("storage.dat");
 
     try {
-        BPTree tree("storage.dat");
+        BPTreeV2 tree("storage.dat");
 
     int n;
     std::cin >> n;
@@ -51,9 +51,6 @@ int main() {
             }
         }
     }
-
-    // Flush changes to disk
-    tree.flush();
 
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;

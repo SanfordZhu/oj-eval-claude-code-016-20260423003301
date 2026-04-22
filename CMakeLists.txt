@@ -6,4 +6,4 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wall -Wextra")
 
-add_executable(code main.cpp bptree.cpp file_manager.cpp)
+add_executable(code main.cpp bptree_v2.cpp)
