@@ -191,22 +191,206 @@ void BPTree::insertInParent(int left_offset, const KeyValue& new_key, int right_
     }
 }
 
+void BPTree::redistributeLeaves(int leaf_offset, int sibling_offset, int parent_offset, int index) {
+    Node leaf = readNode(leaf_offset);
+    Node sibling = readNode(sibling_offset);
+    Node parent = readNode(parent_offset);
+
+    if (leaf_offset < sibling_offset) {
+        // Move one key from sibling to leaf
+        for (int i = leaf.num_keys; i > 0; i--) {
+            leaf.keys[i] = leaf.keys[i-1];
+        }
+        leaf.keys[0] = sibling.keys[0];
+        leaf.num_keys++;
+
+        // Shift sibling keys
+        for (int i = 0; i < sibling.num_keys - 1; i++) {
+            sibling.keys[i] = sibling.keys[i+1];
+        }
+        sibling.num_keys--;
+
+        // Update parent key
+        parent.keys[index] = sibling.keys[0];
+    } else {
+        // Move one key from leaf to sibling
+        sibling.keys[sibling.num_keys] = leaf.keys[leaf.num_keys - 1];
+        sibling.num_keys++;
+        leaf.num_keys--;
+
+        // Update parent key
+        parent.keys[index] = leaf.keys[leaf.num_keys - 1];
+    }
+
+    writeNode(leaf_offset, leaf);
+    writeNode(sibling_offset, sibling);
+    writeNode(parent_offset, parent);
+}
+
+void BPTree::redistributeInternal(int node_offset, int sibling_offset, int parent_offset, int index) {
+    // Redistribute keys and children between internal node and sibling
+    Node node = readNode(node_offset);
+    Node sibling = readNode(sibling_offset);
+    Node parent = readNode(parent_offset);
+
+    if (node_offset < sibling_offset) {
+        // Move one key from sibling to node
+        for (int i = node.num_keys; i > 0; i--) {
+            node.keys[i] = node.keys[i-1];
+            node.children[i+1] = node.children[i];
+        }
+        node.children[1] = node.children[0];
+
+        node.keys[0] = parent.keys[index];
+        node.children[0] = sibling.children[sibling.num_keys];
+        node.num_keys++;
+
+        parent.keys[index] = sibling.keys[sibling.num_keys - 1];
+        sibling.num_keys--;
+    } else {
+        // Move one key from node to sibling
+        sibling.keys[sibling.num_keys] = parent.keys[index];
+        sibling.children[sibling.num_keys + 1] = node.children[node.num_keys];
+        sibling.num_keys++;
+
+        parent.keys[index] = node.keys[node.num_keys - 1];
+        node.num_keys--;
+    }
+
+    writeNode(node_offset, node);
+    writeNode(sibling_offset, sibling);
+    writeNode(parent_offset, parent);
+}
+
+void BPTree::coalesceLeaves(int left_offset, int right_offset, int parent_offset, int index) {
+    Node left = readNode(left_offset);
+    Node right = readNode(right_offset);
+    Node parent = readNode(parent_offset);
+
+    // Move all keys from right to left
+    for (int i = 0; i < right.num_keys; i++) {
+        left.keys[left.num_keys + i] = right.keys[i];
+    }
+    left.num_keys += right.num_keys;
+    left.next_leaf = right.next_leaf;
+
+    // Remove right node
+    freeNode(right_offset);
+
+    // Remove key from parent
+    for (int i = index; i < parent.num_keys - 1; i++) {
+        parent.keys[i] = parent.keys[i+1];
+        parent.children[i+1] = parent.children[i+2];
+    }
+    parent.num_keys--;
+
+    writeNode(left_offset, left);
+    writeNode(parent_offset, parent);
+
+    // Handle parent underflow
+    if (parent.num_keys < MIN_KEYS && parent_offset != root_offset) {
+        deleteEntry(parent_offset, parent.keys[0]);
+    }
+}
+
+void BPTree::coalesceInternal(int node_offset, int sibling_offset, int parent_offset, int index) {
+    // Merge internal node and sibling
+    Node node = readNode(node_offset);
+    Node sibling = readNode(sibling_offset);
+    Node parent = readNode(parent_offset);
+
+    // Pull down key from parent
+    if (node_offset < sibling_offset) {
+        node.keys[node.num_keys] = parent.keys[index];
+        node.children[node.num_keys + 1] = sibling.children[0];
+        node.num_keys++;
+
+        // Move all keys and children from sibling to node
+        for (int i = 0; i < sibling.num_keys; i++) {
+            node.keys[node.num_keys + i] = sibling.keys[i];
+            node.children[node.num_keys + i + 1] = sibling.children[i + 1];
+        }
+        node.num_keys += sibling.num_keys;
+
+        writeNode(node_offset, node);
+    } else {
+        // Pull down key from parent
+        for (int i = sibling.num_keys; i > 0; i--) {
+            sibling.keys[i] = sibling.keys[i-1];
+            sibling.children[i+1] = sibling.children[i];
+        }
+        sibling.children[1] = sibling.children[0];
+        sibling.keys[0] = parent.keys[index];
+        sibling.num_keys++;
+
+        // Move all keys and children from node to sibling
+        for (int i = 0; i < node.num_keys; i++) {
+            sibling.keys[sibling.num_keys + i] = node.keys[i];
+            sibling.children[sibling.num_keys + i + 1] = node.children[i + 1];
+        }
+        sibling.num_keys += node.num_keys;
+
+        writeNode(sibling_offset, sibling);
+    }
+
+    // Free the empty node
+    freeNode(node_offset < sibling_offset ? sibling_offset : node_offset);
+
+    // Remove key from parent
+    for (int i = index; i < parent.num_keys - 1; i++) {
+        parent.keys[i] = parent.keys[i+1];
+        parent.children[i+1] = parent.children[i+2];
+    }
+    parent.num_keys--;
+
+    writeNode(parent_offset, parent);
+
+    // Handle parent underflow
+    if (parent.num_keys < MIN_KEYS && parent_offset != root_offset) {
+        deleteEntry(parent_offset, parent.keys[0]);
+    }
+}
+
 void BPTree::splitInternal(int internal_offset) {
-    // Similar to splitLeaf but handles children pointers
-    // Implementation omitted for brevity but follows B+ tree algorithm
+    Node internal = readNode(internal_offset);
+    Node new_internal;
+    new_internal.is_leaf = false;
+    new_internal.num_keys = 0;
+
+    // Split keys and children
+    int split_point = (internal.num_keys + 1) / 2;
+    KeyValue mid_key = internal.keys[split_point - 1];
+
+    // Move upper half to new node
+    for (int i = split_point; i < internal.num_keys; i++) {
+        new_internal.keys[i - split_point] = internal.keys[i];
+        new_internal.children[i - split_point] = internal.children[i];
+        new_internal.num_keys++;
+    }
+    new_internal.children[new_internal.num_keys] = internal.children[internal.num_keys];
+
+    internal.num_keys = split_point - 1;
+
+    // Allocate space for new internal node
+    int new_internal_offset = allocateNode();
+    writeNode(new_internal_offset, new_internal);
+    writeNode(internal_offset, internal);
+
+    // Insert mid_key in parent
+    insertInParent(internal_offset, mid_key, new_internal_offset);
 }
 
 void BPTree::remove(const std::string& key, int value) {
     KeyValue kv(key, value);
     int leaf_offset = findLeaf(key);
+    if (leaf_offset == -1) return;
+
     Node leaf = readNode(leaf_offset);
 
     bool found = false;
-    int index = -1;
     for (int i = 0; i < leaf.num_keys; i++) {
         if (leaf.keys[i] == kv) {
             found = true;
-            index = i;
             break;
         }
     }
@@ -242,8 +426,70 @@ void BPTree::deleteFromLeaf(Node& leaf, const KeyValue& kv) {
 }
 
 void BPTree::deleteEntry(int node_offset, const KeyValue& kv) {
-    // Handle underflow by redistribution or coalescing
-    // Implementation follows B+ tree deletion algorithm
+    Node node = readNode(node_offset);
+
+    if (node.is_leaf) {
+        if (node.num_keys >= MIN_KEYS || node_offset == root_offset) {
+            // No underflow or is root
+            return;
+        }
+
+        // Find parent and siblings
+        int parent_offset = -1;
+        int left_sibling = -1;
+        int right_sibling = -1;
+        int node_index = -1;
+
+        // Search for parent (simplified - in production, maintain parent pointers)
+        std::vector<std::pair<int, int>> stack;  // node_offset, child_index
+        stack.push_back({root_offset, 0});
+
+        while (!stack.empty()) {
+            auto current = stack.back();
+            stack.pop_back();
+            Node current_node = readNode(current.first);
+
+            if (!current_node.is_leaf) {
+                for (int i = 0; i <= current_node.num_keys; i++) {
+                    if (current_node.children[i] == node_offset) {
+                        parent_offset = current.first;
+                        node_index = i;
+                        if (i > 0) left_sibling = current_node.children[i-1];
+                        if (i < current_node.num_keys) right_sibling = current_node.children[i+1];
+                        break;
+                    }
+                    stack.push_back({current_node.children[i], i});
+                }
+            }
+            if (parent_offset != -1) break;
+        }
+
+        if (parent_offset == -1) return;
+
+        // Try redistribution first
+        if (left_sibling != -1) {
+            Node left = readNode(left_sibling);
+            if (left.num_keys > MIN_KEYS) {
+                redistributeLeaves(node_offset, left_sibling, parent_offset, node_index);
+                return;
+            }
+        }
+
+        if (right_sibling != -1) {
+            Node right = readNode(right_sibling);
+            if (right.num_keys > MIN_KEYS) {
+                redistributeLeaves(right_sibling, node_offset, parent_offset, node_index + 1);
+                return;
+            }
+        }
+
+        // Coalescing if redistribution not possible
+        if (left_sibling != -1) {
+            coalesceLeaves(left_sibling, node_offset, parent_offset, node_index);
+        } else if (right_sibling != -1) {
+            coalesceLeaves(node_offset, right_sibling, parent_offset, node_index);
+        }
+    }
 }
 
 int BPTree::findLeaf(const std::string& key) {
